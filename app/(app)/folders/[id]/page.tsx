@@ -14,12 +14,12 @@ export default async function FolderPage({
   params: Promise<{ id: string }>;
 }) {
   const session = await auth();
-  const { id } = await params;
-
+  
   if (!session) {
     redirect('/login');
   }
-
+  
+  const { id } = await params;
   return (
     <AppLayout>
       <div className="space-y-6">

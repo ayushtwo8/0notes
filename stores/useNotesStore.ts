@@ -89,6 +89,13 @@ export const useNotesStore = create<NotesState>((set, get) => ({
     });
     if (!response.ok) throw new Error('Failed to update note');
     const note = await response.json();
+
+    // Remove from list if it no longer belongs in the current filtered view
+    if (data.isTrashed || data.isArchived) {
+      get().deleteNote(id);
+    } else {
+      get().updateNote(note);
+    }
     get().updateNote(note);
   },
 

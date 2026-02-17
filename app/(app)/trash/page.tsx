@@ -3,8 +3,6 @@ import { redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { NoteList } from '@/components/notes/NoteList';
-import { EmptyState } from '@/components/ui/EmptyState';
-import { Trash2 } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Trash',

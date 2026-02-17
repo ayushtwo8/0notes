@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { NoteCard } from './NoteCard';
 import { NoteCardSkeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -17,11 +17,13 @@ interface NoteListProps {
 export function NoteList({ folderId, tagId, showPinned = true }: NoteListProps) {
   const { notes, isLoading, fetchNotes, setFilters } = useNotesStore();
   const { viewMode } = useUIStore();
+  const setFiltersRef = useRef(setFilters);
+  const fetchNotesRef = useRef(fetchNotes);
 
   useEffect(() => {
-    setFilters({ folderId, tagId });
-    fetchNotes();
-  }, [folderId, tagId, setFilters, fetchNotes]);
+    setFiltersRef.current({ folderId, tagId });
+    fetchNotesRef.current();
+  }, [folderId, tagId]);
 
   const pinnedNotes = notes.filter((note) => note.isPinned && !note.isArchived && !note.isTrashed);
   const otherNotes = notes.filter((note) => !note.isPinned && !note.isArchived && !note.isTrashed);

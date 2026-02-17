@@ -65,12 +65,21 @@ const collectAllIds = (folders: Folder[]): string[] => {
   return ids;
 };
 
+const removeNestedFolder = (folders: Folder[], id: string): Folder[] =>
+  folders
+    .filter((f) => f._id !== id)
+    .map((f) => ({
+      ...f,
+      children: f.children ? removeNestedFolder(f.children, id) : [],
+    }));  
+
 export const useFoldersStore = create<FoldersState>((set, get) => ({
   folders: [],
   isLoading: false,
   error: null,
   expandedFolders: new Set(),
 
+  
   setFolders: (folders) => set({ folders }),
   addFolder: (folder) => set((state) => ({ folders: [...state.folders, folder] })),
   updateFolder: (folder) =>
@@ -79,7 +88,7 @@ export const useFoldersStore = create<FoldersState>((set, get) => ({
     })),
   deleteFolder: (id) =>
     set((state) => ({
-      folders: state.folders.filter((f) => f._id !== id),
+      folders: removeNestedFolder(state.folders, id),
     })),
   setLoading: (loading) => set({ isLoading: loading }),
   setError: (error) => set({ error }),

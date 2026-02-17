@@ -4,6 +4,7 @@ import connectDB from '@/lib/db';
 import { Note } from '@/models';
 import { updateNoteSchema } from '@/lib/validations/note';
 import { Types } from 'mongoose';
+import { isValidObjectId } from '@/lib/utils';
 
 export async function GET(
   request: NextRequest,
@@ -17,12 +18,17 @@ export async function GET(
 
     const { id } = await params;
 
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: 'Invalid note id' }, { status: 400 });
+    }
+
     await connectDB();
 
     const note = await Note.findOne({
       _id: new Types.ObjectId(id),
       userId: new Types.ObjectId(session.user.id),
-    }).populate('tags', 'name color');
+    }).populate('tags', 'name color')
+    .lean();
 
     if (!note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
@@ -49,6 +55,10 @@ export async function PATCH(
     }
 
     const { id } = await params;
+     if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: 'Invalid note id' }, { status: 400 });
+    }
+
     const body = await request.json();
     const validationResult = updateNoteSchema.safeParse(body);
 
@@ -86,7 +96,7 @@ export async function PATCH(
       },
       updateData,
       { new: true }
-    ).populate('tags', 'name color');
+    ).populate('tags', 'name color').lean();
 
     if (!note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });
@@ -114,12 +124,16 @@ export async function DELETE(
 
     const { id } = await params;
 
+     if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: 'Invalid note id' }, { status: 400 });
+    }
+
     await connectDB();
 
     const note = await Note.findOneAndDelete({
       _id: new Types.ObjectId(id),
       userId: new Types.ObjectId(session.user.id),
-    });
+    }).lean();
 
     if (!note) {
       return NextResponse.json({ error: 'Note not found' }, { status: 404 });

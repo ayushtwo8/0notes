@@ -15,6 +15,7 @@ export default function ForgotPasswordPage() {
   const {
     register,
     handleSubmit,
+    setError,
     formState: { errors },
   } = useForm<ForgotPasswordInput>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -22,10 +23,24 @@ export default function ForgotPasswordPage() {
 
   const onSubmit = async (data: ForgotPasswordInput) => {
     setIsLoading(true);
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    setIsLoading(false);
-    setIsSuccess(true);
+    try {
+      const response = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to send reset link');
+      }
+      setIsSuccess(true);
+    } catch (error) {
+      setError('root', {
+        message: (error as Error).message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isSuccess) {
@@ -77,6 +92,10 @@ export default function ForgotPasswordPage() {
         <Button type="submit" className="w-full" isLoading={isLoading}>
           Send reset link
         </Button>
+
+        {errors.root && (
+          <p className="text-sm text-red-600 text-center">{errors.root.message}</p>
+        )}
       </form>
     </div>
   );

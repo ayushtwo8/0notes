@@ -31,7 +31,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   hasUnsavedChanges: false,
   error: null,
 
-  setCurrentNote: (note) => set({ currentNote: note }),
+  setCurrentNote: (note) => set({ currentNote: note, hasUnsavedChanges: false }),
   updateCurrentNote: (data) =>
     set((state) => ({
       currentNote: state.currentNote

@@ -4,9 +4,13 @@ import connectDB from '@/lib/db';
 import { Folder, Note } from '@/models';
 import { createFolderSchema } from '@/lib/validations/folder';
 import { Types } from 'mongoose';
+import { isValidObjectId } from '@/lib/utils';
+
+ 
 
 async function buildFolderTree(
   folders: any[],
+  countMap: Record<string, number>,
   parentId: string | null = null,
   level: number = 0
 ): Promise<any[]> {
@@ -20,18 +24,11 @@ async function buildFolderTree(
   );
 
   for (const folder of children.sort((a, b) => a.order - b.order)) {
-    const noteCount = await Note.countDocuments({
-      folderId: folder._id,
-      isTrashed: false,
-      isArchived: false,
-    });
-
-    const folderWithCount = {
+    result.push({
       ...folder,
-      noteCount,
-      children: await buildFolderTree(folders, folder._id.toString(), level + 1),
-    };
-    result.push(folderWithCount);
+      noteCount: countMap[folder._id.toString()] ?? 0,
+      children: await buildFolderTree(folders, countMap, folder._id.toString(), level + 1),
+    });
   }
 
   return result;
@@ -50,7 +47,22 @@ export async function GET(request: NextRequest) {
       userId: new Types.ObjectId(session.user.id),
     }).lean();
 
-    const folderTree = await buildFolderTree(folders);
+    const noteCounts = await Note.aggregate([
+      {
+        $match: {
+          folderId: { $in: folders.map((f) => f._id) },
+          isTrashed: false,
+          isArchived: false,
+        },
+      },
+      { $group: { _id: '$folderId', count: { $sum: 1 } } },
+    ]);
+    const countMap: Record<string, number> = Object.fromEntries(
+      noteCounts.map((n) => [n._id.toString(), n.count])
+    );
+
+
+    const folderTree = await buildFolderTree(folders, countMap);
 
     return NextResponse.json(folderTree);
   } catch (error) {
@@ -82,6 +94,11 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     if (validationResult.data.parentId) {
+
+      if (!isValidObjectId(validationResult.data.parentId)) {
+        return NextResponse.json({ error: 'Invalid parentId' }, { status: 400 });
+      }
+      
       const parentFolder = await Folder.findOne({
         _id: new Types.ObjectId(validationResult.data.parentId),
         userId: new Types.ObjectId(session.user.id),

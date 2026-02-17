@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import connectDB from '@/lib/db';
 import { Note } from '@/models';
-import { bulkUpdateNotesSchema } from '@/lib/validations/note';
+import { bulkUpdateNotesSchema, bulkDeleteNotesSchema } from '@/lib/validations/note';
 import { Types } from 'mongoose';
+import { isValidObjectId } from '@/lib/utils';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -25,6 +26,11 @@ export async function PATCH(request: NextRequest) {
     await connectDB();
 
     const { ids, ...updateData } = validationResult.data;
+
+    const invalidId = ids.find((id) => !isValidObjectId(id));
+    if (invalidId) {
+      return NextResponse.json({ error: 'Invalid note id in list' }, { status: 400 });
+    }
 
     const objectIds = ids.map((id) => new Types.ObjectId(id));
     const mongoUpdateData: any = { ...updateData };
@@ -76,13 +82,20 @@ export async function DELETE(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { ids } = body;
+    const validationResult = bulkDeleteNotesSchema.safeParse(body);
 
-    if (!Array.isArray(ids) || ids.length === 0) {
+     if (!validationResult.success) {
       return NextResponse.json(
-        { error: 'At least one note must be selected' },
+        { error: 'Invalid input', details: validationResult.error.flatten() },
         { status: 400 }
       );
+    }
+
+    const { ids } = validationResult.data;
+
+    const invalidId = ids.find((id) => !isValidObjectId(id));
+    if (invalidId) {
+      return NextResponse.json({ error: 'Invalid note id in list' }, { status: 400 });
     }
 
     await connectDB();

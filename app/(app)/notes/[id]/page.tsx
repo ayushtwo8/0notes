@@ -21,6 +21,7 @@ import {
   Tag,
   ChevronDown,
 } from 'lucide-react';
+import { getHTMLFromContent } from '@/lib/utils';
 
 const PALETTE_COLORS = [
   { color: '#E34664', name: 'Rose' },
@@ -36,6 +37,7 @@ export default function NoteEditorPage() {
   const params = useParams();
   const noteId = params.id as string;
   const isNewNote = noteId === 'new';
+  const [isEditing, setIsEditing] = useState(isNewNote);
 
   const {
     currentNote,
@@ -135,14 +137,13 @@ export default function NoteEditorPage() {
   }, [isNewNote, currentNote, title, content, selectedFolderId, hasUnsavedChanges, router, setCurrentNote]);
 
   useEffect(() => {
+     if (!isEditing) return;
     if (saveTimeoutRef.current) {
       clearTimeout(saveTimeoutRef.current);
     }
 
     saveTimeoutRef.current = setTimeout(() => {
-      if (hasUnsavedChanges) {
-        handleSave();
-      }
+      handleSave();
     }, 2000);
 
     return () => {
@@ -150,7 +151,7 @@ export default function NoteEditorPage() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [title, content, hasUnsavedChanges, handleSave]);
+  }, [title, content,isEditing, handleSave]);
 
   const handleTogglePin = async () => {
     if (!currentNote) return;
@@ -366,6 +367,12 @@ export default function NoteEditorPage() {
             )}
             {!isNewNote && currentNote && (
               <>
+              <Button
+                  variant={isEditing ? 'primary' : 'ghost'}
+                  onClick={() => setIsEditing(!isEditing)}
+                >
+                  {isEditing ? 'Done' : 'Edit'}
+                </Button>
                 <Button variant="ghost" onClick={handleArchive}>
                   <Archive className="w-4 h-4" />
                 </Button>
@@ -385,17 +392,30 @@ export default function NoteEditorPage() {
             updateCurrentNote({ title: e.target.value });
           }}
           placeholder="Note title"
+          readOnly={!isEditing}
+          onClick={() => !isEditing && setIsEditing(true)}
           className="w-full text-3xl font-bold text-gray-900 placeholder-gray-400 border-none focus:outline-none focus:ring-0 bg-transparent mb-4"
         />
 
-        <TiptapEditor
-          content={content}
-          onChange={(newContent) => {
-            setContent(newContent);
-            updateCurrentNote({ content: newContent });
-          }}
-          placeholder="Start writing your note..."
-        />
+        {isEditing ? (
+          <TiptapEditor
+            key={currentNote?._id ?? 'new'}
+            content={content}
+            onChange={(newContent) => {
+              setContent(newContent);
+              updateCurrentNote({ content: newContent });
+            }}
+            placeholder="Start writing your note..."
+          />
+        ) : (
+          <div
+            className="prose prose-sm max-w-none p-4 min-h-[300px] cursor-pointer rounded-lg hover:bg-gray-50 transition-colors"
+            onClick={() => setIsEditing(true)}
+            dangerouslySetInnerHTML={{ __html: getHTMLFromContent(content) }}
+          />
+        )}
+
+        
       </div>
     </AppLayout>
   );

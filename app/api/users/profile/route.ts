@@ -38,8 +38,8 @@ export async function PATCH(request: NextRequest) {
 
     const user = await User.findByIdAndUpdate(
       new Types.ObjectId(session.user.id),
-      validationResult.data,
-      { new: true }
+{ $set: validationResult.data },
+      { new: true, runValidators: true }
     );
 
     if (!user) {

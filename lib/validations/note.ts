@@ -36,6 +36,10 @@ export const bulkUpdateNotesSchema = z.object({
   isTrashed: z.boolean().optional(),
 });
 
+export const bulkDeleteNotesSchema = z.object({
+  ids: z.array(z.string()).min(1, 'At least one note must be selected'),
+});
+
 export type CreateNoteInput = z.infer<typeof createNoteSchema>;
 export type UpdateNoteInput = z.infer<typeof updateNoteSchema>;
 export type BulkUpdateNotesInput = z.infer<typeof bulkUpdateNotesSchema>;

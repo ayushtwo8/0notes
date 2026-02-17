@@ -10,7 +10,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { Input, Button, Card } from '@/components/ui';
 
 export default function SettingsPage() {
-  const { data: session, update } = useSession();
+  const { data: session, update, status } = useSession();
   const [activeTab, setActiveTab] = useState<'profile' | 'password'>('profile');
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -34,7 +34,7 @@ export default function SettingsPage() {
         email: session.user.email || '',
       });
     }
-  }, [session, profileForm]);
+  }, [session?.user?.name, session?.user?.email, profileForm.reset]);
 
   const onUpdateProfile = async (data: UpdateProfileInput) => {
     setIsUpdating(true);
@@ -46,6 +46,11 @@ export default function SettingsPage() {
         body: JSON.stringify(data),
       });
       if (response.ok) {
+        const updated = await response.json();
+        profileForm.reset({
+          name: updated.name,
+          email: updated.email,
+        });
         await update();
         setMessage({ type: 'success', text: 'Profile updated successfully' });
       } else {
@@ -68,6 +73,7 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      console.log('bpdy: ', response.json)
       if (response.ok) {
         passwordForm.reset();
         setMessage({ type: 'success', text: 'Password updated successfully' });

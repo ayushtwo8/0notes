@@ -5,6 +5,9 @@ import { Folder, Note } from '@/models';
 import { updateFolderSchema } from '@/lib/validations/folder';
 import { Types } from 'mongoose';
 
+import { isValidObjectId } from '@/lib/utils';
+
+
 export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -16,6 +19,12 @@ export async function PATCH(
     }
 
     const { id } = await params;
+
+
+    if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: 'Invalid folder id' }, { status: 400 });
+    }
+
     const body = await request.json();
     const validationResult = updateFolderSchema.safeParse(body);
 
@@ -63,6 +72,10 @@ export async function DELETE(
 
     const { id } = await params;
 
+     if (!isValidObjectId(id)) {
+      return NextResponse.json({ error: 'Invalid folder id' }, { status: 400 });
+    }
+
     await connectDB();
 
     const folder = await Folder.findOne({
@@ -76,10 +89,10 @@ export async function DELETE(
 
     await deleteFolderAndChildren(id);
 
-    await Note.updateMany(
-      { folderId: new Types.ObjectId(id) },
-      { folderId: null }
-    );
+    // await Note.updateMany(
+    //   { folderId: new Types.ObjectId(id) },
+    //   { folderId: null }
+    // );
 
     return NextResponse.json({ message: 'Folder deleted successfully' });
   } catch (error) {
@@ -91,17 +104,27 @@ export async function DELETE(
   }
 }
 
+// async function deleteFolderAndChildren(folderId: string) {
+//   const children = await Folder.find({ parentId: new Types.ObjectId(folderId) });
+
+//   for (const child of children) {
+//     await deleteFolderAndChildren(child._id.toString());
+//     await Note.updateMany(
+//       { folderId: child._id },
+//       { folderId: null }
+//     );
+//     await Folder.findByIdAndDelete(child._id);
+//   }
+
+//   await Folder.findByIdAndDelete(folderId);
+// }
+
+
 async function deleteFolderAndChildren(folderId: string) {
   const children = await Folder.find({ parentId: new Types.ObjectId(folderId) });
-
   for (const child of children) {
     await deleteFolderAndChildren(child._id.toString());
-    await Note.updateMany(
-      { folderId: child._id },
-      { folderId: null }
-    );
-    await Folder.findByIdAndDelete(child._id);
   }
-
+  await Note.updateMany({ folderId: new Types.ObjectId(folderId) }, { folderId: null });
   await Folder.findByIdAndDelete(folderId);
 }
